@@ -1,4 +1,5 @@
 const CryptoJS = require("crypto-js"),
+  hexToBinary = require("hex-to-binary");
 
 class Block {
     constructor(index, hash, previousHash, timestamp, data, difficulty, nonce) {
@@ -27,7 +28,7 @@ const genesisBlock = new Block(
     "",
     1569523151,
     "", //genesisTx
-    0,
+    4,
     0
   );
   
@@ -51,8 +52,10 @@ const findDifficulty = () => {
 };
 
 const hashMatchesDifficulty = (hash, difficulty = 0) => {
-    //TODO : 해시가 Difficulty 가 맞는지 확인하기
-    return 1;
+  const hashInBinary = hexToBinary(hash);
+  const requiredZeros = "0".repeat(difficulty);
+  console.log("Trying difficulty:", difficulty, "with hash", hashInBinary);
+  return hashInBinary.startsWith(requiredZeros);
 };
 
 //Nonce 를 1씩 증가시키며 Mining 하는 작업. 
@@ -117,3 +120,4 @@ const createNewRawBlock = data => {
 
   //TODO : 계정 밸런스
   
+  findBlock(1, "4d1bff8db689882e2bb4c5236d054d3513ad4f4500caebfb7b14b4531981aa45", getTimestamp(), "", 4);
