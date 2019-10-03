@@ -41,20 +41,45 @@ const getNewestBlock = () => blockchain[blockchain.length - 1];
 //블록 체인 전체
 const getBlockchain = () => blockchain;
 
+//블록이 몇초에 하나씩 생겨야 할지.
+const BLOCK_GENERATION_INTERVAL = 1;
+//블록 몇개에 한번씩 난이도 조절을 해야 할지. 
+const DIFFICULTY_ADJUSMENT_INTERVAL = 10;
+
 const calculateNewDifficulty = (newestBlock, blockchain) => {
-    //TODO : 새로운 Difficulty 계산
-    return 0;
+  const lastCalculatedBlock =
+    blockchain[blockchain.length - DIFFICULTY_ADJUSMENT_INTERVAL];
+  const timeExpected =
+    BLOCK_GENERATION_INTERVAL * DIFFICULTY_ADJUSMENT_INTERVAL;
+  const timeTaken = newestBlock.timestamp - lastCalculatedBlock.timestamp;
+  if (timeTaken < timeExpected) {
+    console.log("timeTaken :"+timeTaken+", timeExpected:"+timeExpected+" Difficulty + 1 = " + (lastCalculatedBlock.difficulty + 1));
+    return lastCalculatedBlock.difficulty + 1;
+  } else if (timeTaken > timeExpected) {
+    console.log("timeTaken :"+timeTaken+", timeExpected:"+timeExpected+" Difficulty - 1 = " + (lastCalculatedBlock.difficulty - 1));
+    return lastCalculatedBlock.difficulty - 1;
+  } else {
+    console.log("timeTaken :"+timeTaken+", timeExpected:"+timeExpected);
+    return lastCalculatedBlock.difficulty;
+  }
 };
 
 const findDifficulty = () => {
-    //TODO : Difficulty 리턴 (새로운 Difficulty 로 계산 할지, 기존 것 쓸 지)
-    return 0;
+    const newestBlock = getNewestBlock();
+    if (
+      newestBlock.index % DIFFICULTY_ADJUSMENT_INTERVAL === 0 &&
+      newestBlock.index !== 0
+    ) {
+      return calculateNewDifficulty(newestBlock, getBlockchain());
+    } else {
+      return newestBlock.difficulty;
+    }
 };
 
 const hashMatchesDifficulty = (hash, difficulty = 0) => {
   const hashInBinary = hexToBinary(hash);
   const requiredZeros = "0".repeat(difficulty);
-  console.log("Trying difficulty:", difficulty, "with hash", hashInBinary);
+  //console.log("Trying difficulty:", difficulty, "with hash", hashInBinary);
   return hashInBinary.startsWith(requiredZeros);
 };
 
@@ -63,7 +88,7 @@ const hashMatchesDifficulty = (hash, difficulty = 0) => {
 const findBlock = (index, previousHash, timestamp, data, difficulty) => {
     let nonce = 0;
     while (true) {
-      console.log("Current nonce", nonce);
+      //console.log("Current nonce", nonce);
       const hash = createHash(
         index,
         previousHash,
@@ -87,6 +112,56 @@ const findBlock = (index, previousHash, timestamp, data, difficulty) => {
     }
   };
 
+  const getBlocksHash = block =>
+  createHash(
+    block.index,
+    block.previousHash,
+    block.timestamp,
+    block.data,
+    block.difficulty,
+    block.nonce
+  );
+  
+  const isBlockStructureValid = block => {
+    return (
+      typeof block.index === "number" &&
+      typeof block.hash === "string" &&
+      typeof block.previousHash === "string" &&
+      typeof block.timestamp === "number" &&
+      typeof block.data === "object"
+    );
+  };
+
+  const isTimeStampValid = (newBlock, oldBlock) => {
+    return (
+      oldBlock.timestamp - 60 < newBlock.timestamp &&
+      newBlock.timestamp - 60 < getTimestamp()
+    );
+  };
+  
+  const isBlockValid = (candidateBlock, latestBlock) => {
+    if (!isBlockStructureValid(candidateBlock)) {
+      console.log("후보 블록의 구조가 이상합니다.");
+      return false;
+    } else if (latestBlock.index + 1 !== candidateBlock.index) {
+      console.log("후보 블록의 인덱스가 이상합니다.");
+      return false;
+    } else if (latestBlock.hash !== candidateBlock.previousHash) {
+      console.log(
+        "후보 블록의 이전 해시값이 실제 최근 블록의 해시값과 다릅니다."
+      );
+      return false;
+    } else if (getBlocksHash(candidateBlock) !== candidateBlock.hash) {
+      console.log("후보 블록의 다이제스트와 해시 계산값이 다릅니다.");
+      return false;
+    } else if (!isTimeStampValid(candidateBlock, latestBlock)) {
+      console.log("후보 블록의 시간이 올바르지 않습니다.");
+      return false;
+    }
+    return true;
+  };
+
+
   const addBlockToChain = candidateBlock => {
     if (isBlockValid(candidateBlock, getNewestBlock())) {
         //TODO : Tx 관련 작업
@@ -109,15 +184,52 @@ const createNewRawBlock = data => {
       data,
       difficulty
     );
+    console.log("Block is mined !", newBlockIndex);
     addBlockToChain(newBlock);
     //TODO : 새로운 블록 브로드 캐스팅
     return newBlock;
   };
 
   //TODO : 남이 보내준 블록 Valid 한지 확인 및 교체 결정
+  ////2016
+  const isChainValid = candidateChain => {
+    const isGenesisValid = block => {
+      return JSON.stringify(block) === JSON.stringify(genesisBlock);
+    };
+    if (!isGenesisValid(candidateChain[0])) {
+      console.log(
+        "The candidateChains's genesisBlock is not the same as our genesisBlock"
+      );
+      return null;
+    }
+  }
+
+  const sumDifficulty = anyBlockchain =>
+  anyBlockchain
+    .map(block => block.difficulty)             // [1, 2, 2, 4,  5  ]
+    .map(difficulty => Math.pow(2, difficulty)) // [1, 4, 4, 16, 25 ]
+    .reduce((a, b) => a + b);                   // [1+ 4+ 4+ 16+ 25 ] 
+    
+
+  const replaceChain = candidateChain => {
+    //TODO : TX 관련 코드
+    if (
+      isChainValid(candidateChain) &&
+      sumDifficulty(candidateChain) > sumDifficulty(getBlockchain())
+    ) {
+      blockchain = candidateChain;
+      //TODO : TX 관련 업데이트
+      //TODO : p2p broadcasting
+      return true;
+    } else {
+      return false;
+    }
+  };
 
   //TODO : Tx 핸들링 하기
 
   //TODO : 계정 밸런스
   
-  findBlock(1, "4d1bff8db689882e2bb4c5236d054d3513ad4f4500caebfb7b14b4531981aa45", getTimestamp(), "", 4);
+  while(true){
+  createNewRawBlock({}); 
+  }
