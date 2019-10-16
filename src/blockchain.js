@@ -44,21 +44,26 @@ const getBlockchain = () => blockchain;
 //블록이 몇초에 하나씩 생겨야 할지.
 const BLOCK_GENERATION_INTERVAL = 1;
 //블록 몇개에 한번씩 난이도 조절을 해야 할지. 
-const DIFFICULTY_ADJUSMENT_INTERVAL = 10;
+const DIFFICULTY_ADJUSTMENT_INTERVAL = 10;
 
 const calculateNewDifficulty = (newestBlock, blockchain) => {
+//현재 블록체인으로 부터 10 블록 전 블록을 가져옵니다.
   const lastCalculatedBlock =
-    blockchain[blockchain.length - DIFFICULTY_ADJUSMENT_INTERVAL];
+    blockchain[blockchain.length - DIFFICULTY_ADJUSTMENT_INTERVAL];
+//10 블록 * 1초 즉, 10 개 만들어지는데 10초가 예상 됩니다.
   const timeExpected =
-    BLOCK_GENERATION_INTERVAL * DIFFICULTY_ADJUSMENT_INTERVAL;
+    BLOCK_GENERATION_INTERVAL * DIFFICULTY_ADJUSTMENT_INTERVAL;
+//현재 블록의 시각에서 10 블록전의 시각을 빼면 걸린 시간이 나옵니다.
   const timeTaken = newestBlock.timestamp - lastCalculatedBlock.timestamp;
-  if (timeTaken < timeExpected) {
-    console.log("timeTaken :"+timeTaken+", timeExpected:"+timeExpected+" Difficulty + 1 = " + (lastCalculatedBlock.difficulty + 1));
+  if (timeTaken < timeExpected) { // 채굴 시간이 예상한 시간보다 더 짧으면 난이도를 높입니다.
+    console.log("timeTaken :"+timeTaken+", timeExpected:"+timeExpected+
+      " Difficulty + 1 = " + (lastCalculatedBlock.difficulty + 1));
     return lastCalculatedBlock.difficulty + 1;
-  } else if (timeTaken > timeExpected) {
-    console.log("timeTaken :"+timeTaken+", timeExpected:"+timeExpected+" Difficulty - 1 = " + (lastCalculatedBlock.difficulty - 1));
+  } else if (timeTaken > timeExpected) { // 채굴 시간이 예상 시간보다 더 걸리면 난이도를 낮춥니다.
+    console.log("timeTaken :"+timeTaken+", timeExpected:"+timeExpected+
+      " Difficulty - 1 = " + (lastCalculatedBlock.difficulty - 1));
     return lastCalculatedBlock.difficulty - 1;
-  } else {
+  } else { //아니면 난이도를 유지합니다.
     console.log("timeTaken :"+timeTaken+", timeExpected:"+timeExpected);
     return lastCalculatedBlock.difficulty;
   }
@@ -67,7 +72,7 @@ const calculateNewDifficulty = (newestBlock, blockchain) => {
 const findDifficulty = () => {
     const newestBlock = getNewestBlock();
     if (
-      newestBlock.index % DIFFICULTY_ADJUSMENT_INTERVAL === 0 &&
+      newestBlock.index % DIFFICULTY_ADJUSTMENT_INTERVAL === 0 &&
       newestBlock.index !== 0
     ) {
       return calculateNewDifficulty(newestBlock, getBlockchain());
@@ -230,6 +235,18 @@ const createNewRawBlock = data => {
 
   //TODO : 계정 밸런스
   
-  while(true){
-  createNewRawBlock({}); 
-  }
+  //while(true){ createNewRawBlock({}); }
+
+  module.exports = {
+    getNewestBlock,
+    getBlockchain,
+    isBlockStructureValid,
+    addBlockToChain,
+    replaceChain
+    //getAccountBalance,  TODO : Wallet
+    //createNewBlock,     TODO : with Tx
+    //sendTx,             TODO : Tx
+    //handleIncomingTx,   TODO : Tx
+    //getUTxOutList       TODO : Tx
+  };
+  
