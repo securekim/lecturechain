@@ -61,14 +61,15 @@ const mempoolResponse = data => {
 //TODO : Tx
 //const returnMempool = () => mempoolResponse(getMempool());
 
-const sendMessage = (ws, message) => ws.send(JSON.stringify(message));
-
-const sendMessageToAll = message =>
-  sockets.forEach(ws => sendMessage(ws, message));
 
 const responseLatest = () => blockchainResponse([getNewestBlock()]);
 
 const responseAll = () => blockchainResponse(getBlockchain());
+
+const sendMessage = (ws, message) => ws.send(JSON.stringify(message));
+
+const sendMessageToAll = message =>
+  sockets.forEach(ws => sendMessage(ws, message));
 
 const broadcastNewBlock = () => sendMessageToAll(responseLatest());
 
@@ -106,14 +107,6 @@ const startP2PServer = server => {
 };
 
 
-const parseData = data => {
-  try {
-    return JSON.parse(data);
-  } catch (e) {
-    console.log(e);
-    return null;
-  }
-};
 
 
 const handleBlockchainResponse = receivedBlocks => {
@@ -142,7 +135,8 @@ const handleBlockchainResponse = receivedBlocks => {
 
 const handleSocketMessages = ws => {
   ws.on("message", data => {
-    const message = parseData(data);
+    //try / catch 필요
+    const message = JSON.parse(data);
     if (message === null) {
       return;
     }

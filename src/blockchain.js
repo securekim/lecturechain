@@ -189,7 +189,6 @@ const createNewRawBlock = data => {
       data,
       difficulty
     );
-    console.log("Block is mined !", newBlockIndex);
     addBlockToChain(newBlock);
     //TODO : 새로운 블록 브로드 캐스팅
     return newBlock;
@@ -236,15 +235,28 @@ const createNewRawBlock = data => {
   //TODO : 계정 밸런스
   
   //while(true){ createNewRawBlock({}); }
+  
+  const createNewBlock = () => {
+  //TODO : Tx
+    // const coinbaseTx = createCoinbaseTx(
+    //   getPublicFromWallet(),
+    //   getNewestBlock().index + 1
+    // );
+    // const blockData = [coinbaseTx].concat(getMempool());
+    //return createNewRawBlock(blockData);
+    console.log("Mining !", getNewestBlock().index + 1);
+    return createNewRawBlock({});
+  };
+  //while(true){ createNewBlock({}); }
 
   module.exports = {
     getNewestBlock,
     getBlockchain,
     isBlockStructureValid,
     addBlockToChain,
-    replaceChain
+    replaceChain,
+    createNewBlock,
     //getAccountBalance,  TODO : Wallet
-    //createNewBlock,     TODO : with Tx
     //sendTx,             TODO : Tx
     //handleIncomingTx,   TODO : Tx
     //getUTxOutList       TODO : Tx
