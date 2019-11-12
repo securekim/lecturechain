@@ -61,7 +61,6 @@ const mempoolResponse = data => {
 //TODO : Tx
 //const returnMempool = () => mempoolResponse(getMempool());
 
-
 const responseLatest = () => blockchainResponse([getNewestBlock()]);
 
 const responseAll = () => blockchainResponse(getBlockchain());
