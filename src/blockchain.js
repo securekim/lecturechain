@@ -27,7 +27,7 @@ const genesisBlock = new Block(
     "4d1bff8db689882e2bb4c5236d054d3513ad4f4500caebfb7b14b4531981aa45",
     "",
     1569523151,
-    "", //genesisTx
+    {}, //genesisTx
     4,
     0
   );
@@ -191,21 +191,30 @@ const createNewRawBlock = data => {
     );
     addBlockToChain(newBlock);
     //TODO : 새로운 블록 브로드 캐스팅
+    require("./p2p").broadcastNewBlock();
     return newBlock;
   };
 
   //TODO : 남이 보내준 블록 Valid 한지 확인 및 교체 결정
-  ////2016
   const isChainValid = candidateChain => {
     const isGenesisValid = block => {
       return JSON.stringify(block) === JSON.stringify(genesisBlock);
     };
     if (!isGenesisValid(candidateChain[0])) {
       console.log(
-        "The candidateChains's genesisBlock is not the same as our genesisBlock"
+        "제네시스 블록이 다름."
       );
       return null;
     }
+    // candidateChain 를 돌면서 이전 블록과 비교해 검증.
+    for (let i = 0; i < candidateChain.length; i++) {
+      const currentBlock = candidateChain[i];
+      if (i !== 0 && !isBlockValid(currentBlock, candidateChain[i - 1])) {
+        return null;
+      }
+    }
+    return true;
+    //todo : tx
   }
 
   const sumDifficulty = anyBlockchain =>
@@ -224,8 +233,10 @@ const createNewRawBlock = data => {
       blockchain = candidateChain;
       //TODO : TX 관련 업데이트
       //TODO : p2p broadcasting
+      require("./p2p").broadcastNewBlock();
       return true;
     } else {
+      console.log("ReplaceChain - 후보체인이 올바르지 않음.")
       return false;
     }
   };

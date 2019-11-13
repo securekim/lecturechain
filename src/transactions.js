@@ -31,6 +31,11 @@ class Transaction {
   // txOuts[]
 }
 
+//constructor 로 잡으면 클래스가 클래스를 참조해서 가독성이 떨어짐
+// const txIn = new TxIn("",blockIndex,"");
+// const tx = new Transaction(getTxId(tx),[txIn],[new TxOut(address, COINBASE_AMOUNT)]);
+  
+
 class UTxOut {
     constructor(txOutId, txOutIndex, address, amount) {
       this.txOutId = txOutId;
@@ -40,7 +45,7 @@ class UTxOut {
     }
   }
   
-//Transaction ID 계산 : 모두 다 해시 한다.
+//Transaction ID : 모두 다 해시 한 것.
 const getTxId = tx => {
   const txInContent = tx.txIns //txIns 에서 txOutId 와 txOutIndex를 모두 더함
     .map(txIn => txIn.txOutId + txIn.txOutIndex)
@@ -90,7 +95,7 @@ const getPublicKey = privateKey => {
     .encode("hex");
 };
 
-//UTxOuts 를 업데이트함.
+//UTxOuts 를 업데이트함. ?? 
 const updateUTxOuts = (newTxs, uTxOutList) => {
   const newUTxOuts = newTxs
     .map(tx =>
