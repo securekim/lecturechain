@@ -235,6 +235,7 @@ const isChainValid = candidateChain => {
       require("./p2p").broadcastNewBlock();
       return true;
     } else {
+      console.log("ReplaceChain - 후보체인이 올바르지 않음.")
       return false;
     }
   };

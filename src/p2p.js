@@ -61,7 +61,6 @@ const mempoolResponse = data => {
 //TODO : Tx
 //const returnMempool = () => mempoolResponse(getMempool());
 
-
 const responseLatest = () => blockchainResponse([getNewestBlock()]);
 
 const responseAll = () => blockchainResponse(getBlockchain());
@@ -111,12 +110,12 @@ const startP2PServer = server => {
 
 const handleBlockchainResponse = receivedBlocks => {
   if (receivedBlocks.length === 0) {
-    console.log("Received blocks have a length of 0");
+    console.log("받은 블럭체인 길이가 0");
     return;
   }
   const latestBlockReceived = receivedBlocks[receivedBlocks.length - 1];
   if (!isBlockStructureValid(latestBlockReceived)) {
-    console.log("The block structure of the block received is not valid");
+    console.log("받은 블록체인 구조가 이상함.");
     return;
   }
   const newestBlock = getNewestBlock();
