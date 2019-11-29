@@ -166,12 +166,24 @@ const findBlock = (index, previousHash, timestamp, data, difficulty) => {
     return true;
   };
 
-
   const addBlockToChain = candidateBlock => {
     if (isBlockValid(candidateBlock, getNewestBlock())) {
-        //TODO : Tx 관련 작업
+      const processedTxs = processTxs(
+        candidateBlock.data,
+        uTxOuts,
+        candidateBlock.index
+      );
+      if (processedTxs === null) {
+        console.log("process txs 실패");
+        return false;
+      } else { 
         blockchain.push(candidateBlock);
+        uTxOuts = processedTxs;
+        updateMempool(uTxOuts);
         return true;
+      }
+    } else {
+      return false;
     }
   };
   
@@ -205,16 +217,28 @@ const isChainValid = candidateChain => {
     );
     return null;
   }
-  // candidateChain 를 돌면서 이전 블록과 비교해 검증.
-  for (let i = 0; i < candidateChain.length; i++) {
-    const currentBlock = candidateChain[i];
-    if (i !== 0 && !isBlockValid(currentBlock, candidateChain[i - 1])) {
-      return null;
-    }
+  
+  let foreignUTxOuts = [];
+
+  for (let i = 0; i < candidateChain.length; i++) {
+    const currentBlock = candidateChain[i];
+    if (i !== 0 && !isBlockValid(currentBlock, candidateChain[i - 1])) {
+      return null;
+    }
+    //트랜잭션 프로세싱
+    foreignUTxOuts = processTxs(
+      currentBlock.data,
+      foreignUTxOuts,
+      currentBlock.index
+    );
+
+    if (foreignUTxOuts === null) {
+      return null;
+    }
   }
-  return true;
-  //todo : tx
-}
+  return foreignUTxOuts;
+};
+
     
 
   const sumDifficulty = anyBlockchain =>
@@ -225,13 +249,18 @@ const isChainValid = candidateChain => {
     
 
   const replaceChain = candidateChain => {
-    //TODO : TX 관련 코드
+    //isChainValid 에서 후보체인 검증 및 
+    //트랜잭션 프로세싱(Tx 검증, UTxOuts) 결과도 리턴 해 줌
+    const foreignUTxOuts = isChainValid(candidateChain);
+    const validChain = foreignUTxOuts !== null;
     if (
-      isChainValid(candidateChain) &&
+      validChain &&
       sumDifficulty(candidateChain) > sumDifficulty(getBlockchain())
     ) {
       blockchain = candidateChain;
-      //TODO : TX 관련 업데이트
+      //멤풀에서 UTXO 업데이트
+      uTxOuts = foreignUTxOuts;
+      updateMempool(uTxOuts);
       require("./p2p").broadcastNewBlock();
       return true;
     } else {
@@ -239,24 +268,40 @@ const isChainValid = candidateChain => {
       return false;
     }
   };
+  //UTxOut 리스트 딥클론 및 리턴
+  const getUTxOutList = () => _.cloneDeep(uTxOuts);
+  //지갑에 있는 돈 리턴
+  const getAccountBalance = () => getBalance(getPublicFromWallet(), uTxOuts);
+  //들어오는 트랜잭션 핸들링 하기 (멤풀에 추가하기) 
+  const handleIncomingTx = tx => {
+    addToMempool(tx, getUTxOutList()); // <-- new line
+  };
 
-  //TODO : Tx 핸들링 하기
-
-  //TODO : 계정 밸런스
+  //트랜잭션 보내기
+  const sendTx = (address, amount) => {
+    const tx = createTx(
+      address,
+      amount,
+      getPrivateFromWallet(),
+      getUTxOutList(),
+      getMempool()
+    );
+    addToMempool(tx, getUTxOutList());
+    require("./p2p").broadcastMempool(); // <--- new line
+    return tx;
+  };
   
-  //while(true){ createNewRawBlock({}); }
   
   const createNewBlock = () => {
-  //TODO : Tx
-    // const coinbaseTx = createCoinbaseTx(
-    //   getPublicFromWallet(),
-    //   getNewestBlock().index + 1
-    // );
-    // const blockData = [coinbaseTx].concat(getMempool());
-    //return createNewRawBlock(blockData);
+    const coinbaseTx = createCoinbaseTx(
+      getPublicFromWallet(),
+      getNewestBlock().index + 1
+    );
+    const blockData = [coinbaseTx].concat(getMempool());
     console.log("Mining !", getNewestBlock().index + 1);
-    return createNewRawBlock({});
+    return createNewRawBlock(blockData);
   };
+  
   //while(true){ createNewBlock({}); }
 
   module.exports = {
@@ -266,9 +311,9 @@ const isChainValid = candidateChain => {
     addBlockToChain,
     replaceChain,
     createNewBlock,
-    //getAccountBalance,  TODO : Wallet
-    //sendTx,             TODO : Tx
-    //handleIncomingTx,   TODO : Tx
-    //getUTxOutList       TODO : Tx
+    getAccountBalance,  
+    sendTx,             
+    handleIncomingTx,   
+    getUTxOutList       
   };
   

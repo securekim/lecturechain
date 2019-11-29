@@ -95,27 +95,27 @@ const getPublicKey = privateKey => {
     .encode("hex");
 };
 
-//UTxOuts 를 업데이트함. ?? 
-const updateUTxOuts = (newTxs, uTxOutList) => {
-  const newUTxOuts = newTxs
-    .map(tx =>
-      tx.txOuts.map(
-        (txOut, index) => new UTxOut(tx.id, index, txOut.address, txOut.amount)
-      )
-    )
-    .reduce((a, b) => a.concat(b), []);
-
-  const spentTxOuts = newTxs
-    .map(tx => tx.txIns)
-    .reduce((a, b) => a.concat(b), [])
-    .map(txIn => new UTxOut(txIn.txOutId, txIn.txOutIndex, "", 0));
-
-  const resultingUTxOuts = uTxOutList
-    .filter(uTxO => !findUTxOut(uTxO.txOutId, uTxO.txOutIndex, spentTxOuts))
-    .concat(newUTxOuts);
-  return resultingUTxOuts;
+//UTxOuts 를 업데이트함. ?? (사용한 txIn 제거) - 코드주의
+// UTXO 리스트에서 사용하려는 txIn 을 제거해준다.
+// 50 -> 40 을 보낸다면, 50짜리 UTxOut 는 비워 주고 40짜리, 10짜리를 새로 생성해 준다.
+const updateUTxOuts = (newTxs, uTxOutList) => {
+    //신규 Tx 들에서 UTxOut 모으기
+    const newUTxOuts = newTxs
+      .map(tx => tx.txOuts
+        .map(
+          (txOut, index) => new UTxOut(tx.id, index, txOut.address, txOut.amount)
+        )).reduce((a, b) => a.concat(b), []);
+    //신규 Tx 들에서 사용된(txIn) TxOut들 모으기
+    const spentTxOuts = newTxs
+      .map(tx => tx.txIns) // 트랜잭션 인풋의 Array
+      .reduce((a, b) => a.concat(b), [])
+      .map(txIn => new UTxOut(txIn.txOutId, txIn.txOutIndex, "", 0)); //사용된 것들이므로 비울 것
+   //UTxOut 을 가져다가 spentTxOutput 에서 찾을거고, 찾아지면 쓸것이므로 삭제함
+    const resultingUTxOuts = uTxOutList
+      .filter(uTxO => !findUTxOut(uTxO.txOutId, uTxO.txOutIndex, spentTxOuts))
+      .concat(newUTxOuts);
+    return resultingUTxOuts;
 };
-
 
 //txIn 을 가져와서 구조가 올바른지 본다.
 const isTxInStructureValid = txIn => {
@@ -320,7 +320,6 @@ const hasDuplicates = txIns => {
 };
 
 
-//TODO : BlockTxs 검증
 const validateBlockTxs = (txs, uTxOutList, blockIndex) => {
   const coinbaseTx = txs[0];
   if (!validateCoinbaseTx(coinbaseTx, blockIndex)) {
