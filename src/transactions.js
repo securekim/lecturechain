@@ -324,9 +324,14 @@ const hasDuplicates = txIns => {
 const validateBlockTxs = (txs, uTxOutList, blockIndex) => {
   const coinbaseTx = txs[0];
   if (!validateCoinbaseTx(coinbaseTx, blockIndex)) {
-    console.log("Coinbase Tx 가 이상합니다");
+    console.log("Coinbase Tx 가 이상합니다"); //Q: return
+    return false;
   }
 
+  //txs 는 트랜잭션을 모아놓은 것.
+  //[ tx1, tx2, ... ]
+  // tx1 = {txIns[], txOuts[]}
+  //여기서 이런 구조에서 다시 1차원 배열을 만들려면 flatten 이 필요하다.
   const txIns = _(txs)
     .map(tx => tx.txIns)
     .flatten()
@@ -340,7 +345,7 @@ const validateBlockTxs = (txs, uTxOutList, blockIndex) => {
 
   return nonCoinbaseTxs
     .map(tx => validateTx(tx, uTxOutList))  // 리턴되는게 true / false
-    .reduce((a, b) => a + b, true);         // false 만 
+    .reduce((a, b) => a && b, true);         // Q: a && b - 하나라도 false 면 false
 };
 
 //Tx에 이상이 없는 경우 UTxOuts 업데이트

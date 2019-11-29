@@ -1,6 +1,18 @@
 var myArr = [1,2,3,4];
 var result = myArr.map(v => v + 1)
 
+const _ = require("lodash");
+txIn = {txOutId:1, txOutIndex:2}
+txIn2 = {txOutId:3, txOutIndex:4}
+tx = {txIns : [txIn, txIn2]}
+txs = [tx,tx]
+
+myTxIns = _(txs)
+    .map(tx => tx.txIns)
+    .value();
+
+console.log("tx : ",myTxIns);
+
 result = myArr.map(v => {
 	if(v%2) return '홀';
 	return '짝';
@@ -13,7 +25,6 @@ result = myArr.reduce((acc, cur, index, arr)=>{
 });
 
 const express = require("express"),
-  _ = require("lodash"),
   cors = require("cors"),
   bodyParser = require("body-parser"),
   morgan = require("morgan");
@@ -29,8 +40,6 @@ var resultArr = myArr.reduce((acc,val)=>{
     return acc;
   },[]);
 
-var result1 = data.reduce(reducer, initialValue);
-
 app
   .route("/blocks")
   .get((req, res) => {
@@ -45,3 +54,4 @@ const PORT = process.env.HTTP_PORT || 3000;
 const server = app.listen(PORT, () =>
   console.log(`HTTP Server running on port ${PORT} ✅`)
 );
+

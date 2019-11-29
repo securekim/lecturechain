@@ -1,15 +1,13 @@
-GET http://localhost:4000/blocks
+### 블록 확인
+GET http://localhost:3000/blocks
 
 
-###
-
+### 3000번에서 두개 마이닝
 POST http://localhost:3000/blocks
 Content-Type: application/json
 
 
-#####################################4000 과 3000 p2p 연결
-
-
+### 4000 과 3000 p2p 연결
 POST http://localhost:3000/peers
 Content-Type: application/json
 
@@ -17,4 +15,12 @@ Content-Type: application/json
     "peer": "ws://localhost:4000"
 }
 
+### 4000번 쪽 블록 확인 (총 3개)
+GET http://localhost:4000/blocks
 
+### 4000번에서 두개 마이닝
+POST http://localhost:4000/blocks
+Content-Type: application/json
+
+### 3000번 쪽 블록 확인 (총 5개)
+GET http://localhost:3000/blocks

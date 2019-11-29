@@ -53,16 +53,15 @@ const initWallet = () => {
 const findAmountInUTxOuts = (amountNeeded, myUTxOuts) => {
   let currentAmount = 0;
   const includedUTxOuts = [];
-  for (const myUTxOut of myUTxOuts) {
-    includedUTxOuts.push(myUTxOut);
-    currentAmount = currentAmount + myUTxOut.amount;
-    if (currentAmount >= amountNeeded) {
+  for (const myUTxOut of myUTxOuts) { // 내가 가진 UTxOuts 중에서
+    includedUTxOuts.push(myUTxOut);   // 일단 하나 넣고
+    currentAmount = currentAmount + myUTxOut.amount; //현재 금액에 더한 다음
+    if (currentAmount >= amountNeeded) { // 필요한 금액 이상이면 
       const leftOverAmount = currentAmount - amountNeeded;
-      return { includedUTxOuts, leftOverAmount };
+      return { includedUTxOuts, leftOverAmount }; // 포함한 UTXOut 들과 남은 금액 리턴
     }
   }
-  throw Error("Not enough founds");
-  return false;
+  throw Error("돈이 충분하지 않습니다.");
 };
 
 const createTxOuts = (receiverAddress, myAddress, amount, leftOverAmount) => {
@@ -100,7 +99,7 @@ const filterUTxOutsFromMempool = (uTxOutList, mempool) => {
   return _.without(uTxOutList, ...removables);
 };
 
-//todo : createTx
+//todo : createTx + mempool
 const createTx = (receiverAddress, amount, privateKey, uTxOutList, memPool) => {
   const myAddress = getPublicKey(privateKey);
   const myUTxOuts = uTxOutList.filter(uTxO => uTxO.address === myAddress);
