@@ -44,14 +44,6 @@ const isTxValidForPool = (tx, mempool) => {
     return foundTxIn !== undefined;
   };
   
-
-  const hasTxIn = (txIn, uTxOutList) => {
-    const foundTxIn = uTxOutList.find(
-      uTxO => uTxO.txOutId === txIn.txOutId && uTxO.txOutIndex === txIn.txOutIndex
-    );
-  
-    return foundTxIn !== undefined;
-  };
   
   const updateMempool = uTxOutList => {
     const invalidTxs = [];

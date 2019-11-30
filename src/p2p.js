@@ -1,13 +1,16 @@
-const WebSockets = require("ws");
-const Blockchain = require("./blockchain");
+const WebSockets = require("ws"),
+  Mempool = require("./mempool"),
+  Blockchain = require("./blockchain");
 
+  const { getMempool } = Mempool;
+  
   const {
     getNewestBlock,
     isBlockStructureValid,
     replaceChain,
     getBlockchain,
     addBlockToChain,
-    //handleIncomingTx // TODO: With Tx
+    handleIncomingTx
   } = Blockchain;
 
 const sockets = [];
@@ -16,9 +19,8 @@ const GET_LATEST = "GET_LATEST";
 const GET_ALL = "GET_ALL";
 const BLOCKCHAIN_RESPONSE = "BLOCKCHAIN_RESPONSE";
 
-//TODO : Mempool with Tx
-//const REQUEST_MEMPOOL = "REQUEST_MEMPOOL";
-//const MEMPOOL_RESPONSE = "MEMPOOL_RESPONSE";
+const REQUEST_MEMPOOL = "REQUEST_MEMPOOL";
+const MEMPOOL_RESPONSE = "MEMPOOL_RESPONSE";
 
 // Message Creators
 const getLatest = () => {
@@ -42,7 +44,6 @@ const blockchainResponse = data => {
   };
 };
 
-/* TODO : Tx
 const getAllMempool = () => {
     return {
       type: REQUEST_MEMPOOL,
@@ -56,10 +57,8 @@ const mempoolResponse = data => {
     data
   };
 };
-*/
 
-//TODO : Tx
-//const returnMempool = () => mempoolResponse(getMempool());
+const returnMempool = () => mempoolResponse(getMempool());
 
 const responseLatest = () => blockchainResponse([getNewestBlock()]);
 
@@ -72,8 +71,7 @@ const sendMessageToAll = message =>
 
 const broadcastNewBlock = () => sendMessageToAll(responseLatest());
 
-//TODO : Tx
-//const broadcastMempool = () => sendMessageToAll(returnMempool());
+const broadcastMempool = () => sendMessageToAll(returnMempool());
 
 const getSockets = () => sockets;
 
@@ -82,10 +80,9 @@ const initSocketConnection = ws => {
   handleSocketMessages(ws);
   handleSocketError(ws);
   sendMessage(ws, getLatest());
-  // TODO : Tx
-  // setTimeout(() => {
-  //   sendMessageToAll(getAllMempool()); // changed line
-  // }, 1000);
+  setTimeout(() => {
+    sendMessageToAll(getAllMempool()); 
+  }, 1000);
   setInterval(() => {
     if (sockets.includes(ws)) {
       sendMessage(ws, "");
@@ -153,24 +150,23 @@ const handleSocketMessages = ws => {
         }
         handleBlockchainResponse(receivedBlocks);
         break;
-      // TODO : Tx
-      // case REQUEST_MEMPOOL:
-      //   sendMessage(ws, returnMempool());
-      //   break;
-      // case MEMPOOL_RESPONSE:
-      //   const receivedTxs = message.data;
-      //   if (receivedTxs === null) {
-      //     return;
-      //   }
-      //   receivedTxs.forEach(tx => {
-      //     try {
-      //       handleIncomingTx(tx);
-      //       broadcastMempool();
-      //     } catch (e) {
-      //       console.log(e);
-      //     }
-      //   });
-      //  break;
+      case REQUEST_MEMPOOL:
+        sendMessage(ws, returnMempool());
+        break;
+      case MEMPOOL_RESPONSE:
+        const receivedTxs = message.data;
+        if (receivedTxs === null) {
+          return;
+        }
+        receivedTxs.forEach(tx => {
+          try {
+            handleIncomingTx(tx);
+            broadcastMempool();
+          } catch (e) {
+            console.log(e);
+          }
+        });
+       break;
     }
   });
 };
@@ -197,7 +193,6 @@ const connectToPeers = newPeer => {
 module.exports = {
   startP2PServer,
   connectToPeers,
-  broadcastNewBlock
-// TODO : Tx
-//  broadcastMempool
+  broadcastNewBlock,
+  broadcastMempool
 };

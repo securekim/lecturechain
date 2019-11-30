@@ -5,22 +5,21 @@ const express = require("express"),
   morgan = require("morgan"),
   Blockchain = require("./blockchain"),
   P2P = require("./p2p");
-  //Mempool = require("./mempool"),
-  //Wallet = require("./wallet");
+  
+  Mempool = require("./mempool"),
+  Wallet = require("./wallet");
 
   const {
     getBlockchain,
     createNewBlock,
-    //TODO : Tx
-    //getAccountBalance,
-    //sendTx,
-    //getUTxOutList
+    getAccountBalance,
+    sendTx,
+    getUTxOutList
   } = Blockchain;
 
 const { startP2PServer, connectToPeers } = P2P;
-//TODO : Tx
-//const { initWallet, getPublicFromWallet, getBalance } = Wallet;
-//const { getMempool } = Mempool;
+const { initWallet, getPublicFromWallet, getBalance } = Wallet;
+const { getMempool } = Mempool;
 
 //LINUX : export HTTP_PORT=4000
 //WINDOWS : set HTTP_PORT=4000
@@ -47,15 +46,14 @@ app.post("/peers", (req, res) => {
   res.send();
 });
 
-//TODO : Tx
-// app.get("/me/balance", (req, res) => {
-//     const balance = getAccountBalance();
-//     res.send({ balance });
-//   });
+app.get("/me/balance", (req, res) => {
+    const balance = getAccountBalance();
+    res.send({ balance });
+  });
   
-//   app.get("/me/address", (req, res) => {
-//     res.send(getPublicFromWallet());
-//   });
+  app.get("/me/address", (req, res) => {
+    res.send(getPublicFromWallet());
+  });
 
 
 app.get("/blocks/:hash", (req, res) => {
@@ -67,50 +65,47 @@ app.get("/blocks/:hash", (req, res) => {
       res.send(block);
     }
   });
-  
 
-  //TODO : Tx
-// app.get("/transactions/:id", (req, res) => {
-//     const tx = _(getBlockchain())
-//       .map(blocks => blocks.data)
-//       .flatten()
-//       .find({ id: req.params.id });
-//     if (tx === undefined) {
-//       res.status(400).send("Transaction not found");
-//     }
-//     res.send(tx);
-//   });
+app.get("/transactions/:id", (req, res) => {
+    const tx = _(getBlockchain())
+      .map(blocks => blocks.data)
+      .flatten()
+      .find({ id: req.params.id });
+    if (tx === undefined) {
+      res.status(400).send("Transaction not found");
+    }
+    res.send(tx);
+  });
   
-//   app
-//     .route("/transactions")
-//     .get((req, res) => {
-//       res.send(getMempool());
-//     })
-//     .post((req, res) => {
-//       try {
-//         const { body: { address, amount } } = req;
-//         if (address === undefined || amount === undefined) {
-//           throw Error("Please specify and address and an amount");
-//         } else {
-//           const resPonse = sendTx(address, amount);
-//           res.send(resPonse);
-//         }
-//       } catch (e) {
-//         res.status(400).send(e.message);
-//       }
-//     });
+  app
+    .route("/transactions")
+    .get((req, res) => {
+      res.send(getMempool());
+    })
+    .post((req, res) => {
+      try {
+        const { body: { address, amount } } = req;
+        if (address === undefined || amount === undefined) {
+          throw Error("주소나 금액이 없습니다.");
+        } else { // 주소와 금액이 있는 경우 Tx 보내기
+          const resPonse = sendTx(address, amount);
+          res.send(resPonse);
+        }
+      } catch (e) {
+        res.status(400).send(e.message);
+      }
+    });
   
-//   app.get("/address/:address", (req, res) => {
-//     const { params: { address } } = req;
-//     const balance = getBalance(address, getUTxOutList());
-//     res.send({ balance });
-//   });
+  app.get("/address/:address", (req, res) => {
+    const { params: { address } } = req;
+    const balance = getBalance(address, getUTxOutList());
+    res.send({ balance });
+  });
 
 
 const server = app.listen(PORT, () =>
   console.log(`LectureChain HTTP Server running on port ${PORT} ✅`)
 );
 
-//TODO : Wallet
-// initWallet();
+initWallet();
 startP2PServer(server);

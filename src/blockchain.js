@@ -1,5 +1,20 @@
 const CryptoJS = require("crypto-js"),
+  _ = require("lodash"),
+  Wallet = require("./wallet"),
+  Mempool = require("./mempool"),
+  Transactions = require("./transactions"),
   hexToBinary = require("hex-to-binary");
+
+  const {
+    getBalance,
+    getPublicFromWallet,
+    createTx,
+    getPrivateFromWallet
+  } = Wallet;
+  
+  const { createCoinbaseTx, processTxs } = Transactions;
+  
+  const { addToMempool, getMempool, updateMempool } = Mempool;
 
 class Block {
     constructor(index, hash, previousHash, timestamp, data, difficulty, nonce) {
@@ -22,16 +37,28 @@ const createHash = (index, previousHash, timestamp, data, difficulty, nonce) =>
     index + previousHash + timestamp + JSON.stringify(data) + difficulty + nonce
     ).toString();
 
-const genesisBlock = new Block(
-    0,
-    "4d1bff8db689882e2bb4c5236d054d3513ad4f4500caebfb7b14b4531981aa45",
-    "",
-    1569523151,
-    {}, //genesisTx
-    4,
-    0
-  );
-  
+    const genesisTx = {
+      txIns: [{ signature: "", txOutId: "", txOutIndex: 0 }],
+      txOuts: [
+        {
+          address:
+            "04f20aec39b4c5f79355c053fdaf30410820400bb83ad93dd8ff16834b555e0f6262efba6ea94a87d3c267b5e6aca433ca89b342ac95c40230349ea4bf9caff1ed",
+          amount: 50
+        }
+      ],
+      id: "ad67c73cd8e98af6db4ac14cc790664a890286d4b06c6da7ef223aef8c281e76"
+    };
+
+    const genesisBlock = new Block(
+      0,
+      "82a3ecd4e76576fccce9999d560a31c7ad1faff4a3f4c6e7507a227781a8537f",
+      "",
+      1518512316,
+      [genesisTx],
+      0,
+      0
+    );
+
 // 블록체인 선언
 let blockchain = [genesisBlock];
 
@@ -45,6 +72,9 @@ const getBlockchain = () => blockchain;
 const BLOCK_GENERATION_INTERVAL = 1;
 //블록 몇개에 한번씩 난이도 조절을 해야 할지. 
 const DIFFICULTY_ADJUSTMENT_INTERVAL = 10;
+
+//사용되지 않은 트랜잭션(UTXO) 관리 시작
+let uTxOuts = processTxs(blockchain[0].data, [], 0);
 
 const calculateNewDifficulty = (newestBlock, blockchain) => {
 //현재 블록체인으로 부터 10 블록 전 블록을 가져옵니다.

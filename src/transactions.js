@@ -1,7 +1,6 @@
 const CryptoJS = require("crypto-js"),
   elliptic = require("elliptic"),
-  _ = require("lodash"),
-  utils = require("./utils");
+  _ = require("lodash");
 
 const ec = new elliptic.ec("secp256k1");
 
@@ -65,6 +64,11 @@ const findUTxOut = (txOutId, txOutIndex, uTxOutList) => {
   );
 };
 
+const toHexString = byteArray => {
+  return Array.from(byteArray, byte => {
+    return ("0" + (byte & 0xff).toString(16)).slice(-2);
+  }).join("");
+};
 //트랜잭션의 id 는 해시값임. 이걸 사이닝 할 것임.
 const signTxIn = (tx, txInIndex, privateKey, uTxOutList) => {
   const txIn = tx.txIns[txInIndex];
@@ -83,7 +87,7 @@ const signTxIn = (tx, txInIndex, privateKey, uTxOutList) => {
     return false;
   }
   const key = ec.keyFromPrivate(privateKey, "hex");
-  const signature = utils.toHexString(key.sign(dataToSign).toDER());
+  const signature = toHexString(key.sign(dataToSign).toDER());
   return signature;
 };
 

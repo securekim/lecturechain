@@ -76,62 +76,57 @@ const createTxOuts = (receiverAddress, myAddress, amount, leftOverAmount) => {
   }
 };
 
-//todo : mempool
+//멤풀에 존재하는 사용된 txIn 을 UTXO 리스트에서 빼준다.
 const filterUTxOutsFromMempool = (uTxOutList, mempool) => {
   const txIns = _(mempool)
     .map(tx => tx.txIns)
     .flatten()
     .value();
-
   const removables = [];
-
   for (const uTxOut of uTxOutList) {
-    const txIn = _.find(
-      txIns,
-      txIn =>
-        txIn.txOutIndex === uTxOut.txOutIndex && txIn.txOutId === uTxOut.txOutId
+    const txIn = _.find(txIns,
+      txIn => txIn.txOutIndex === uTxOut.txOutIndex && txIn.txOutId === uTxOut.txOutId
     );
     if (txIn !== undefined) {
       removables.push(uTxOut);
     }
   }
-
   return _.without(uTxOutList, ...removables);
 };
 
-//todo : createTx + mempool
+//내 주소에 해당하는 UTXO 를 이제 쓸거임.
 const createTx = (receiverAddress, amount, privateKey, uTxOutList, memPool) => {
   const myAddress = getPublicKey(privateKey);
-  const myUTxOuts = uTxOutList.filter(uTxO => uTxO.address === myAddress);
 
+  // UTXO 리스트에서 내걸 찾아서 멤풀에서 제거한다.
+  const myUTxOuts = uTxOutList.filter(uTxO => uTxO.address === myAddress);
   const filteredUTxOuts = filterUTxOutsFromMempool(myUTxOuts, memPool);
 
+  // UTXO 리스트에서 내가 쓰고싶은 만큼 UTXO 를 포함하고 남은 돈을 계산해 둔다.
   const { includedUTxOuts, leftOverAmount } = findAmountInUTxOuts(
     amount,
     filteredUTxOuts
   );
-
+  //TxIn을 사인되지 않은 상태로 생성. 나중에 TxID 가 생성되면 일괄 사이닝 할 것임.
   const toUnsignedTxIn = uTxOut => {
     const txIn = new TxIn();
     txIn.txOutId = uTxOut.txOutId;
     txIn.txOutIndex = uTxOut.txOutIndex;
     return txIn;
   };
-
   const unsignedTxIns = includedUTxOuts.map(toUnsignedTxIn);
 
   const tx = new Transaction();
-
+  //아까 생성한 txIns를 넣고 txOuts 도 생성해서 tx 에 넣음
   tx.txIns = unsignedTxIns;
   tx.txOuts = createTxOuts(receiverAddress, myAddress, amount, leftOverAmount);
-
+  //드디어 tx 의 id 계산이 가능해 짐.
   tx.id = getTxId(tx);
-
+  //이제 txIns 각각에 txid를 사인해서 signature 를 집어 넣는다.
   tx.txIns = tx.txIns.map((txIn, index) => {
     txIn.signature = signTxIn(tx, index, privateKey, uTxOutList);
     return txIn;
   });
-
   return tx;
 };
 
